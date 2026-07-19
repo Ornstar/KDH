@@ -14,10 +14,10 @@
             transform:translateY(0);
         ">
             <iframe
-                src="https://match-recommendation-kudahoki88.abacusai.app"
+                src="https://kdh-match.lovable.app"
                 style="
                     width:100%;
-                    height:230px;
+                    height:325px;
                     border:none;
                     display:block;
                     margin:0;
