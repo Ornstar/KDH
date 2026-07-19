@@ -1,6 +1,6 @@
 (function () {
     const POPUP_IMAGES = [
-        'https://plcl.me/images/efWXr.jpg',
+        'https://plcl.me/images/pF3q3.jpg',
         'https://plcl.me/images/R7Qsn.png',
         'https://plcl.me/images/nJmyo.jpg',
         'https://plcl.me/images/NfRXX.png'
