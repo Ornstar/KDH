@@ -6,7 +6,7 @@
     const css = `
         @media (min-width: 992px) {
             .c-qiOHF {
-                background: url("https://plcl.me/images/PzDtW.jpg") center center / cover no-repeat !important;
+                background: url("https://www.image2url.com/r2/default/images/1784832130662-8efe3afe-8ec2-4625-b6a8-6195555a4f35.jpg") center center / cover no-repeat !important;
             }
 
             .c-qiOHF::before {
@@ -31,7 +31,7 @@
     /* =========================
        JACKPOT IMAGE REPLACER
     ========================== */
-    const NEW_IMAGE_URL = "https://www.image2url.com/r2/default/gifs/1784831859566-c7a4c023-e447-42b1-9320-24eb19ec09c3.gif";
+    const NEW_IMAGE_URL = "https://www.image2url.com/r2/default/images/1784832067711-5f9e6d39-3306-4a66-91ef-29140fba7269.png";
 
     function replaceJackpotDesktop() {
         const imgs = document.querySelectorAll('img[alt="jackpot-bg"]');
