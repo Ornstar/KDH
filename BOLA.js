@@ -5,7 +5,7 @@
 
     // Tinggi area yang terlihat.
     // Semakin kecil nilainya, semakin banyak bagian bawah yang terpotong.
-    const VISIBLE_HEIGHT = 150;
+    const VISIBLE_HEIGHT = 130;
 
     // Tinggi asli isi iframe.
     const IFRAME_HEIGHT = 230;
