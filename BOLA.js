@@ -17,7 +17,7 @@
                 src="https://kdh-match.lovable.app"
                 style="
                     width:100%;
-                    height:330px;
+                    height:230px;
                     border:none;
                     display:block;
                     margin:0;
