@@ -31,7 +31,7 @@
     /* =========================
        JACKPOT IMAGE REPLACER
     ========================== */
-    const NEW_IMAGE_URL = "https://www.image2url.com/r2/default/images/1785191276826-d7686405-69e9-4416-b835-211265a2aff3.png";
+    const NEW_IMAGE_URL = "https://www.image2url.com/r2/default/images/1785191545038-0c42384c-fbf1-4e50-a269-e63d580b7f2b.png";
 
     function replaceJackpotDesktop() {
         const imgs = document.querySelectorAll('img[alt="jackpot-bg"]');
