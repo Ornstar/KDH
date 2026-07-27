@@ -1,163 +1,223 @@
 (() => {
-    'use strict';
+    "use strict";
 
-    const WIDGET_ID = 'kdh-match-widget';
-
-    /*
-     * Tinggi tampilan sampai batas bawah kotak pertandingan.
-     * Kurangi menjadi 190 jika masih ada sedikit ruang kosong.
-     * Tambah menjadi 205 jika bagian bawah kotak terpotong.
-     */
-    const VISIBLE_HEIGHT = 198;
+    const WIDGET_ID = "kdh-match-widget";
+    const TARGET_SELECTOR = ".c-dLTxpX";
 
     /*
-     * Tinggi asli iframe.
-     * Jangan diperkecil karena isi iframe akan tetap dirender penuh.
+     * Sesuaikan tinggi sampai tepat di bawah kotak rekomendasi.
+     * Coba:
+     * 185 = lebih pendek
+     * 195 = normal
+     * 205 = lebih tinggi
      */
+    const VISIBLE_HEIGHT = 195;
+
     const IFRAME_HEIGHT = 230;
+    const IFRAME_URL = "https://kdh-match.lovable.app";
 
-    let injected = false;
+    function important(element, property, value) {
+        if (!element) return;
 
-    function setImportant(element, property, value) {
-        element.style.setProperty(property, value, 'important');
+        element.style.setProperty(
+            property,
+            value,
+            "important"
+        );
     }
 
-    function createWidget() {
-        const widget = document.createElement('div');
+    function hapusWidgetLama() {
+        /*
+         * Hapus semua widget lama dengan ID yang sama.
+         */
+        document
+            .querySelectorAll("#" + WIDGET_ID)
+            .forEach(element => element.remove());
+
+        /*
+         * Hapus iframe duplikat yang mungkin masih tertinggal.
+         */
+        document
+            .querySelectorAll(
+                'iframe[src*="kdh-match.lovable.app"]'
+            )
+            .forEach(iframe => {
+                const wrapper = iframe.parentElement;
+
+                if (wrapper) {
+                    wrapper.remove();
+                } else {
+                    iframe.remove();
+                }
+            });
+    }
+
+    function buatWidget() {
+        const widget = document.createElement("div");
 
         widget.id = WIDGET_ID;
 
-        setImportant(widget, 'width', '100%');
-        setImportant(widget, 'height', VISIBLE_HEIGHT + 'px');
-        setImportant(widget, 'min-height', '0');
-        setImportant(widget, 'max-height', VISIBLE_HEIGHT + 'px');
-        setImportant(widget, 'margin', '0');
-        setImportant(widget, 'padding', '0');
-        setImportant(widget, 'overflow', 'hidden');
+        important(widget, "width", "100%");
+        important(
+            widget,
+            "height",
+            VISIBLE_HEIGHT + "px"
+        );
+        important(
+            widget,
+            "min-height",
+            VISIBLE_HEIGHT + "px"
+        );
+        important(
+            widget,
+            "max-height",
+            VISIBLE_HEIGHT + "px"
+        );
+        important(widget, "margin", "0");
+        important(widget, "padding", "0");
+        important(widget, "overflow", "hidden");
+        important(widget, "position", "relative");
+        important(widget, "display", "block");
+        important(widget, "line-height", "0");
+        important(widget, "font-size", "0");
+        important(widget, "box-sizing", "border-box");
 
-        widget.style.position = 'relative';
-        widget.style.display = 'block';
-        widget.style.lineHeight = '0';
-        widget.style.fontSize = '0';
-        widget.style.borderRadius = '10px';
+        widget.style.borderRadius = "10px";
 
-        const iframe = document.createElement('iframe');
+        const iframe = document.createElement("iframe");
 
-        iframe.src = 'https://kdh-match.lovable.app';
-        iframe.scrolling = 'no';
-        iframe.loading = 'lazy';
-        iframe.setAttribute('frameborder', '0');
+        iframe.src = IFRAME_URL;
+        iframe.loading = "lazy";
+        iframe.scrolling = "no";
+        iframe.setAttribute("frameborder", "0");
 
-        iframe.style.width = '100%';
-        iframe.style.height = IFRAME_HEIGHT + 'px';
-        iframe.style.minHeight = IFRAME_HEIGHT + 'px';
-        iframe.style.border = 'none';
-        iframe.style.display = 'block';
-        iframe.style.margin = '0';
-        iframe.style.padding = '0';
-        iframe.style.overflow = 'hidden';
-        iframe.style.borderRadius = '10px';
-
-        /*
-         * Isi tetap dimulai dari atas.
-         * Ubah ke -5px jika bagian atas ingin dinaikkan sedikit.
-         */
-        iframe.style.transform = 'translateY(0)';
+        important(iframe, "position", "absolute");
+        important(iframe, "top", "0");
+        important(iframe, "left", "0");
+        important(iframe, "width", "100%");
+        important(
+            iframe,
+            "height",
+            IFRAME_HEIGHT + "px"
+        );
+        important(
+            iframe,
+            "min-height",
+            IFRAME_HEIGHT + "px"
+        );
+        important(
+            iframe,
+            "max-height",
+            IFRAME_HEIGHT + "px"
+        );
+        important(iframe, "border", "none");
+        important(iframe, "margin", "0");
+        important(iframe, "padding", "0");
+        important(iframe, "display", "block");
 
         widget.appendChild(iframe);
 
         return widget;
     }
 
-    function tryInsert() {
-        const target = document.querySelector('.c-dLTxpX');
+    function hilangkanKotakKosong(target) {
+        /*
+         * Elemen target inilah yang kemungkinan menjadi
+         * area kosong panjang pada gambar.
+         */
+        important(target, "display", "none");
+        important(target, "height", "0");
+        important(target, "min-height", "0");
+        important(target, "max-height", "0");
+        important(target, "margin", "0");
+        important(target, "padding", "0");
+        important(target, "overflow", "hidden");
+        important(target, "border", "none");
+
+        const parent = target.parentElement;
+
+        if (parent) {
+            important(parent, "height", "auto");
+            important(parent, "min-height", "0");
+            important(parent, "max-height", "none");
+            important(parent, "padding-bottom", "0");
+            important(parent, "margin-bottom", "0");
+        }
+
+        const next = target.nextElementSibling;
+
+        if (next) {
+            important(next, "margin-top", "0");
+            important(next, "padding-top", "0");
+        }
+    }
+
+    function pasangWidget() {
+        const target = document.querySelector(
+            TARGET_SELECTOR
+        );
 
         if (!target) {
             return false;
         }
 
         /*
-         * Hapus widget versi lama yang sebelumnya
-         * dipasang menggunakan beforebegin.
+         * Jangan langsung return ketika widget lama ditemukan.
+         * Widget lama wajib dihapus agar ukuran terbaru diterapkan.
          */
-        const oldWidget = document.getElementById(WIDGET_ID);
+        hapusWidgetLama();
 
-        if (oldWidget && !target.contains(oldWidget)) {
-            oldWidget.remove();
-        }
+        const widget = buatWidget();
 
-        if (
-            injected &&
-            target.querySelector('#' + WIDGET_ID)
-        ) {
-            return true;
-        }
+        target.parentNode.insertBefore(
+            widget,
+            target
+        );
 
-        /*
-         * Paksa target mengikuti tinggi widget.
-         * Ini yang menghilangkan kotak kosong panjang.
-         */
-        setImportant(target, 'width', '100%');
-        setImportant(target, 'height', VISIBLE_HEIGHT + 'px');
-        setImportant(target, 'min-height', '0');
-        setImportant(target, 'max-height', VISIBLE_HEIGHT + 'px');
-        setImportant(target, 'margin', '0');
-        setImportant(target, 'padding', '0');
-        setImportant(target, 'overflow', 'hidden');
-
-        target.style.display = 'block';
-        target.style.position = 'relative';
-        target.style.lineHeight = '0';
-        target.style.fontSize = '0';
-
-        /*
-         * Kosongkan isi target lalu masukkan iframe
-         * langsung ke dalam target.
-         */
-        target.innerHTML = '';
-        target.appendChild(createWidget());
-
-        const prev = target.previousElementSibling;
-        const next = target.nextElementSibling;
-
-        if (prev) {
-            setImportant(prev, 'margin-bottom', '0');
-            setImportant(prev, 'padding-bottom', '0');
-        }
-
-        if (next) {
-            setImportant(next, 'margin-top', '0');
-            setImportant(next, 'padding-top', '0');
-        }
-
-        injected = true;
+        hilangkanKotakKosong(target);
 
         console.log(
-            '[OK] KDH Match Widget dipasang tanpa ruang kosong'
+            "[OK] Widget dipasang dan ruang kosong dipotong"
         );
 
         return true;
     }
 
     function start() {
-        if (tryInsert()) {
-            return;
-        }
+        let selesai = false;
+
+        const jalankan = () => {
+            if (!selesai && pasangWidget()) {
+                selesai = true;
+            }
+        };
+
+        jalankan();
 
         const timer = setInterval(() => {
-            if (tryInsert()) {
-                clearInterval(timer);
+            jalankan();
+
+            /*
+             * Pastikan elemen target tetap tersembunyi
+             * jika halaman melakukan render ulang.
+             */
+            const target = document.querySelector(
+                TARGET_SELECTOR
+            );
+
+            if (target) {
+                hilangkanKotakKosong(target);
             }
-        }, 300);
+        }, 500);
 
         setTimeout(() => {
             clearInterval(timer);
         }, 30000);
     }
 
-    if (document.readyState === 'loading') {
+    if (document.readyState === "loading") {
         document.addEventListener(
-            'DOMContentLoaded',
+            "DOMContentLoaded",
             start
         );
     } else {
