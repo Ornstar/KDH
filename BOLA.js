@@ -4,16 +4,15 @@
     position: relative !important;
 
     width: 100% !important;
-    height: 198px !important;
-    min-height: 198px !important;
-    max-height: 198px !important;
+    height: 205px !important;
+    min-height: 205px !important;
+    max-height: 205px !important;
 
+    margin: 0 0 4px 0 !important;
     padding: 0 !important;
-    margin: 0 !important;
 
     overflow: hidden !important;
     box-sizing: border-box !important;
-
     line-height: 0 !important;
     font-size: 0 !important;
 
@@ -22,73 +21,47 @@
 
   #kdh-widget iframe {
     display: block !important;
-
     width: 100% !important;
     height: 230px !important;
     min-height: 230px !important;
-    max-height: 230px !important;
 
-    padding: 0 !important;
     margin: 0 !important;
-
+    padding: 0 !important;
     border: 0 !important;
-    overflow: hidden !important;
   }
 
   #kdh-widget > div,
   #kdh-widget > section {
-    padding: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* AREA KOSONG DI BAWAH WIDGET */
-  [data-kdh-gap="true"] {
-    display: flex !important;
-
-    width: 100% !important;
-
-    height: 40px !important;
-    min-height: 40px !important;
-    max-height: 40px !important;
-
-    block-size: 40px !important;
-    min-block-size: 40px !important;
-    max-block-size: 40px !important;
-
-    flex: 0 0 40px !important;
-
-    padding: 0 !important;
-    margin: 0 !important;
-
-    overflow: hidden !important;
-    box-sizing: border-box !important;
+  /* Target tepat di bawah widget */
+  .c-dLTxpX[data-kdh-target="true"] {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 </style>
-
-<div id="kdh-widget"></div>
-
-<script
-  src="https://kdh-match.lovable.app/widget.js"
-  data-target="kdh-widget"
-  defer>
-</script>
 
 <script>
 (function () {
   "use strict";
 
+  var TARGET_SELECTOR = ".c-dLTxpX";
   var HOST_ID = "kdh-widget";
+  var WIDGET_SCRIPT =
+    "https://kdh-match.lovable.app/widget.js";
 
-  /* Tinggi tampilan widget */
-  var WIDGET_HEIGHT = 198;
+  /* Tinggi bagian widget yang terlihat */
+  var WIDGET_HEIGHT = 205;
 
-  /* Tinggi area .c-dLTxpX */
-  var TARGET_HEIGHT = 40;
+  /* Jarak widget dengan .c-dLTxpX */
+  var GAP_BOTTOM = 4;
+
+  var sudahDipasang = false;
 
   function setImportant(element, property, value) {
-    if (!element) {
-      return;
-    }
+    if (!element) return;
 
     element.style.setProperty(
       property,
@@ -97,47 +70,73 @@
     );
   }
 
-  function cariTargetTerdekat(host) {
-    var semuaTarget = Array.from(
-      document.querySelectorAll(".c-dLTxpX")
+  function cariTargetTerlihat() {
+    var targets = document.querySelectorAll(
+      TARGET_SELECTOR
     );
 
-    if (!semuaTarget.length) {
-      return null;
+    for (var i = 0; i < targets.length; i++) {
+      var rect =
+        targets[i].getBoundingClientRect();
+
+      var style =
+        window.getComputedStyle(targets[i]);
+
+      if (
+        rect.width > 0 &&
+        style.display !== "none" &&
+        style.visibility !== "hidden"
+      ) {
+        return targets[i];
+      }
     }
 
-    var hostRect = host.getBoundingClientRect();
-
-    var kandidat = semuaTarget.filter(function (target) {
-      return (
-        !target.contains(host) &&
-        !host.contains(target)
-      );
-    });
-
-    if (!kandidat.length) {
-      return null;
-    }
-
-    kandidat.sort(function (a, b) {
-      var rectA = a.getBoundingClientRect();
-      var rectB = b.getBoundingClientRect();
-
-      var jarakA = Math.abs(
-        rectA.top - hostRect.bottom
-      );
-
-      var jarakB = Math.abs(
-        rectB.top - hostRect.bottom
-      );
-
-      return jarakA - jarakB;
-    });
-
-    return kandidat[0];
+    return null;
   }
 
-  function aturWidget(host) {
+  function hapusWidgetLama() {
+    document
+      .querySelectorAll(
+        "#kdh-widget," +
+        "#kdh-match-widget," +
+        "#kdh-match-widget-v3," +
+        "#kdh-match-widget-final," +
+        "#kdh-match-widget-cropped"
+      )
+      .forEach(function (element) {
+        element.remove();
+      });
+
+    document
+      .querySelectorAll(
+        'iframe[src*="kdh-match.lovable.app"]'
+      )
+      .forEach(function (iframe) {
+        var parent = iframe.parentElement;
+
+        if (parent) {
+          parent.remove();
+        } else {
+          iframe.remove();
+        }
+      });
+
+    document
+      .querySelectorAll(
+        'script[src*="kdh-match.lovable.app/widget.js"]'
+      )
+      .forEach(function (script) {
+        script.remove();
+      });
+  }
+
+  function buatHostWidget() {
+    var host = document.createElement("div");
+
+    host.id = HOST_ID;
+
+    setImportant(host, "display", "block");
+    setImportant(host, "position", "relative");
     setImportant(host, "width", "100%");
 
     setImportant(
@@ -158,159 +157,160 @@
       WIDGET_HEIGHT + "px"
     );
 
-    setImportant(host, "padding", "0px");
-    setImportant(host, "margin", "0px");
+    setImportant(
+      host,
+      "margin",
+      "0 0 " + GAP_BOTTOM + "px 0"
+    );
+
+    setImportant(host, "padding", "0");
+    setImportant(host, "overflow", "hidden");
+    setImportant(host, "box-sizing", "border-box");
+    setImportant(host, "line-height", "0");
+    setImportant(host, "font-size", "0");
+
+    return host;
+  }
+
+  function rapikanTarget(target) {
+    target.setAttribute(
+      "data-kdh-target",
+      "true"
+    );
+
+    setImportant(target, "margin-top", "0");
+    setImportant(target, "padding-top", "0");
+
+    /*
+     * Jangan paksa tinggi target menjadi 40px.
+     * Biarkan isi aslinya tampil normal.
+     */
+    setImportant(target, "min-height", "0");
+
+    var parent = target.parentElement;
+
+    if (parent) {
+      setImportant(parent, "gap", "0");
+      setImportant(parent, "row-gap", "0");
+    }
+  }
+
+  function muatScriptWidget() {
+    var script = document.createElement("script");
+
+    script.src = WIDGET_SCRIPT;
+    script.setAttribute(
+      "data-target",
+      HOST_ID
+    );
+
+    script.async = true;
+
+    document.body.appendChild(script);
+  }
+
+  function paksaUkuranSetelahRender() {
+    var host =
+      document.getElementById(HOST_ID);
+
+    if (!host) return;
+
+    setImportant(
+      host,
+      "height",
+      WIDGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      host,
+      "min-height",
+      WIDGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      host,
+      "max-height",
+      WIDGET_HEIGHT + "px"
+    );
+
     setImportant(host, "overflow", "hidden");
 
     var iframe = host.querySelector("iframe");
 
     if (iframe) {
+      setImportant(iframe, "display", "block");
       setImportant(iframe, "width", "100%");
       setImportant(iframe, "height", "230px");
       setImportant(iframe, "min-height", "230px");
-      setImportant(iframe, "max-height", "230px");
-      setImportant(iframe, "padding", "0px");
-      setImportant(iframe, "margin", "0px");
+      setImportant(iframe, "margin", "0");
+      setImportant(iframe, "padding", "0");
       setImportant(iframe, "border", "0");
-      setImportant(iframe, "display", "block");
     }
   }
 
-  function aturTarget(target) {
-    if (!target) {
-      return;
+  function pasangWidget() {
+    if (sudahDipasang) {
+      paksaUkuranSetelahRender();
+      return true;
     }
 
-    target.setAttribute(
-      "data-kdh-gap",
-      "true"
-    );
+    var target = cariTargetTerlihat();
 
-    setImportant(target, "padding", "0px");
-    setImportant(target, "margin", "0px");
-
-    setImportant(
-      target,
-      "height",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "min-height",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "max-height",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "block-size",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "min-block-size",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "max-block-size",
-      TARGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      target,
-      "flex",
-      "0 0 " + TARGET_HEIGHT + "px"
-    );
-
-    setImportant(target, "overflow", "hidden");
-    setImportant(target, "box-sizing", "border-box");
-
-    var parent = target.parentElement;
-
-    if (parent) {
-      setImportant(parent, "gap", "0px");
-      setImportant(parent, "row-gap", "0px");
-      setImportant(parent, "padding-bottom", "0px");
-      setImportant(parent, "margin-bottom", "0px");
-      setImportant(parent, "min-height", "0px");
+    if (!target || !target.parentNode) {
+      return false;
     }
 
-    var sebelum = target.previousElementSibling;
-    var sesudah = target.nextElementSibling;
+    hapusWidgetLama();
 
-    if (sebelum) {
-      setImportant(sebelum, "margin-bottom", "0px");
-      setImportant(sebelum, "padding-bottom", "0px");
-    }
+    var host = buatHostWidget();
 
-    if (sesudah) {
-      setImportant(sesudah, "margin-top", "0px");
-      setImportant(sesudah, "padding-top", "0px");
-    }
-  }
+    /*
+     * Widget dipasang tepat di atas .c-dLTxpX
+     */
+    target.parentNode.insertBefore(
+      host,
+      target
+    );
 
-  function terapkanUkuran() {
-    var host = document.getElementById(HOST_ID);
+    rapikanTarget(target);
+    muatScriptWidget();
 
-    if (!host) {
-      return;
-    }
+    sudahDipasang = true;
 
-    aturWidget(host);
+    setTimeout(
+      paksaUkuranSetelahRender,
+      300
+    );
 
-    var target = cariTargetTerdekat(host);
+    setTimeout(
+      paksaUkuranSetelahRender,
+      1000
+    );
 
-    aturTarget(target);
+    setTimeout(
+      paksaUkuranSetelahRender,
+      2000
+    );
+
+    console.log(
+      "[OK] Widget dipasang tepat di atas .c-dLTxpX"
+    );
+
+    return true;
   }
 
   function mulai() {
-    terapkanUkuran();
-
-    var host = document.getElementById(HOST_ID);
-
-    if (!host) {
-      return;
-    }
-
-    var observerHost = new MutationObserver(function () {
-      requestAnimationFrame(terapkanUkuran);
-    });
-
-    observerHost.observe(host, {
-      childList: true,
-      subtree: true
-    });
-
-    var observerHalaman = new MutationObserver(function () {
-      requestAnimationFrame(terapkanUkuran);
-    });
-
-    observerHalaman.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    if (pasangWidget()) return;
 
     var timer = setInterval(function () {
-      terapkanUkuran();
-    }, 500);
+      if (pasangWidget()) {
+        clearInterval(timer);
+      }
+    }, 300);
 
     setTimeout(function () {
       clearInterval(timer);
     }, 30000);
-
-    window.addEventListener(
-      "resize",
-      terapkanUkuran
-    );
   }
 
   if (document.readyState === "loading") {
