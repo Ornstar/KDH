@@ -8,8 +8,8 @@
     min-height: 40px !important;
 
     /* Tinggi area widget yang terlihat */
-    height: 128px !important;
-    max-height: 198px !important;
+    height: 132px !important;
+    max-height: 132px !important;
 
     overflow: hidden !important;
     box-sizing: border-box !important;
