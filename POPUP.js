@@ -1,9 +1,6 @@
 (function () {
     const POPUP_IMAGES = [
-        'https://plcl.me/images/pF3q3.jpg',
-        'https://plcl.me/images/R7Qsn.png',
-        'https://plcl.me/images/nJmyo.jpg',
-        'https://plcl.me/images/NfRXX.png'
+        'https://plcl.me/images/Zf4KY.jpg'
     ];
 
     const DELAY_KEY = 'popup_delay_1h';
