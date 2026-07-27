@@ -1,15 +1,15 @@
 <style>
   #kdh-widget {
+    display: block !important;
+    position: relative !important;
+
     width: 100% !important;
+    height: 198px !important;
+    min-height: 198px !important;
+    max-height: 198px !important;
 
     padding: 0 !important;
     margin: 0 !important;
-
-    min-height: 40px !important;
-
-    /* Tinggi area widget yang terlihat */
-    height: 132px !important;
-    max-height: 132px !important;
 
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -26,17 +26,42 @@
     width: 100% !important;
     height: 230px !important;
     min-height: 230px !important;
+    max-height: 230px !important;
 
-    margin: 0 !important;
     padding: 0 !important;
+    margin: 0 !important;
 
     border: 0 !important;
     overflow: hidden !important;
   }
 
-  #kdh-widget > div {
+  #kdh-widget > div,
+  #kdh-widget > section {
     padding: 0 !important;
     margin: 0 !important;
+  }
+
+  /* AREA KOSONG DI BAWAH WIDGET */
+  [data-kdh-gap="true"] {
+    display: flex !important;
+
+    width: 100% !important;
+
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+
+    block-size: 40px !important;
+    min-block-size: 40px !important;
+    max-block-size: 40px !important;
+
+    flex: 0 0 40px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 </style>
 
@@ -53,106 +78,202 @@
   "use strict";
 
   var HOST_ID = "kdh-widget";
-  var VISIBLE_HEIGHT = 198;
 
-  function paksaUkuranWidget() {
-    var host = document.getElementById(HOST_ID);
+  /* Tinggi tampilan widget */
+  var WIDGET_HEIGHT = 198;
 
-    if (!host) {
+  /* Tinggi area .c-dLTxpX */
+  var TARGET_HEIGHT = 40;
+
+  function setImportant(element, property, value) {
+    if (!element) {
       return;
     }
 
-    host.style.setProperty(
-      "padding",
-      "0px",
+    element.style.setProperty(
+      property,
+      value,
       "important"
     );
+  }
 
-    host.style.setProperty(
-      "margin",
-      "0px",
-      "important"
+  function cariTargetTerdekat(host) {
+    var semuaTarget = Array.from(
+      document.querySelectorAll(".c-dLTxpX")
     );
 
-    host.style.setProperty(
-      "min-height",
-      "40px",
-      "important"
-    );
+    if (!semuaTarget.length) {
+      return null;
+    }
 
-    host.style.setProperty(
-      "height",
-      VISIBLE_HEIGHT + "px",
-      "important"
-    );
+    var hostRect = host.getBoundingClientRect();
 
-    host.style.setProperty(
-      "max-height",
-      VISIBLE_HEIGHT + "px",
-      "important"
-    );
-
-    host.style.setProperty(
-      "overflow",
-      "hidden",
-      "important"
-    );
-
-    var children = host.querySelectorAll(
-      "div, section, iframe"
-    );
-
-    children.forEach(function (element) {
-      element.style.setProperty(
-        "margin",
-        "0px",
-        "important"
-      );
-
-      element.style.setProperty(
-        "padding",
-        "0px",
-        "important"
+    var kandidat = semuaTarget.filter(function (target) {
+      return (
+        !target.contains(host) &&
+        !host.contains(target)
       );
     });
+
+    if (!kandidat.length) {
+      return null;
+    }
+
+    kandidat.sort(function (a, b) {
+      var rectA = a.getBoundingClientRect();
+      var rectB = b.getBoundingClientRect();
+
+      var jarakA = Math.abs(
+        rectA.top - hostRect.bottom
+      );
+
+      var jarakB = Math.abs(
+        rectB.top - hostRect.bottom
+      );
+
+      return jarakA - jarakB;
+    });
+
+    return kandidat[0];
+  }
+
+  function aturWidget(host) {
+    setImportant(host, "width", "100%");
+
+    setImportant(
+      host,
+      "height",
+      WIDGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      host,
+      "min-height",
+      WIDGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      host,
+      "max-height",
+      WIDGET_HEIGHT + "px"
+    );
+
+    setImportant(host, "padding", "0px");
+    setImportant(host, "margin", "0px");
+    setImportant(host, "overflow", "hidden");
 
     var iframe = host.querySelector("iframe");
 
     if (iframe) {
-      iframe.style.setProperty(
-        "width",
-        "100%",
-        "important"
-      );
-
-      iframe.style.setProperty(
-        "height",
-        "230px",
-        "important"
-      );
-
-      iframe.style.setProperty(
-        "min-height",
-        "230px",
-        "important"
-      );
-
-      iframe.style.setProperty(
-        "border",
-        "0",
-        "important"
-      );
-
-      iframe.style.setProperty(
-        "display",
-        "block",
-        "important"
-      );
+      setImportant(iframe, "width", "100%");
+      setImportant(iframe, "height", "230px");
+      setImportant(iframe, "min-height", "230px");
+      setImportant(iframe, "max-height", "230px");
+      setImportant(iframe, "padding", "0px");
+      setImportant(iframe, "margin", "0px");
+      setImportant(iframe, "border", "0");
+      setImportant(iframe, "display", "block");
     }
   }
 
+  function aturTarget(target) {
+    if (!target) {
+      return;
+    }
+
+    target.setAttribute(
+      "data-kdh-gap",
+      "true"
+    );
+
+    setImportant(target, "padding", "0px");
+    setImportant(target, "margin", "0px");
+
+    setImportant(
+      target,
+      "height",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "min-height",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "max-height",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "block-size",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "min-block-size",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "max-block-size",
+      TARGET_HEIGHT + "px"
+    );
+
+    setImportant(
+      target,
+      "flex",
+      "0 0 " + TARGET_HEIGHT + "px"
+    );
+
+    setImportant(target, "overflow", "hidden");
+    setImportant(target, "box-sizing", "border-box");
+
+    var parent = target.parentElement;
+
+    if (parent) {
+      setImportant(parent, "gap", "0px");
+      setImportant(parent, "row-gap", "0px");
+      setImportant(parent, "padding-bottom", "0px");
+      setImportant(parent, "margin-bottom", "0px");
+      setImportant(parent, "min-height", "0px");
+    }
+
+    var sebelum = target.previousElementSibling;
+    var sesudah = target.nextElementSibling;
+
+    if (sebelum) {
+      setImportant(sebelum, "margin-bottom", "0px");
+      setImportant(sebelum, "padding-bottom", "0px");
+    }
+
+    if (sesudah) {
+      setImportant(sesudah, "margin-top", "0px");
+      setImportant(sesudah, "padding-top", "0px");
+    }
+  }
+
+  function terapkanUkuran() {
+    var host = document.getElementById(HOST_ID);
+
+    if (!host) {
+      return;
+    }
+
+    aturWidget(host);
+
+    var target = cariTargetTerdekat(host);
+
+    aturTarget(target);
+  }
+
   function mulai() {
-    paksaUkuranWidget();
+    terapkanUkuran();
 
     var host = document.getElementById(HOST_ID);
 
@@ -160,24 +281,36 @@
       return;
     }
 
-    var observer = new MutationObserver(function () {
-      requestAnimationFrame(
-        paksaUkuranWidget
-      );
+    var observerHost = new MutationObserver(function () {
+      requestAnimationFrame(terapkanUkuran);
     });
 
-    observer.observe(host, {
+    observerHost.observe(host, {
+      childList: true,
+      subtree: true
+    });
+
+    var observerHalaman = new MutationObserver(function () {
+      requestAnimationFrame(terapkanUkuran);
+    });
+
+    observerHalaman.observe(document.body, {
       childList: true,
       subtree: true
     });
 
     var timer = setInterval(function () {
-      paksaUkuranWidget();
+      terapkanUkuran();
     }, 500);
 
     setTimeout(function () {
       clearInterval(timer);
-    }, 20000);
+    }, 30000);
+
+    window.addEventListener(
+      "resize",
+      terapkanUkuran
+    );
   }
 
   if (document.readyState === "loading") {
