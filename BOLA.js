@@ -1,22 +1,25 @@
 (() => {
     "use strict";
 
-    const WIDGET_ID = "kdh-match-widget";
+    const OLD_WIDGET_ID = "kdh-match-widget";
+    const NEW_WIDGET_ID = "kdh-match-widget-v3";
     const TARGET_SELECTOR = ".c-dLTxpX";
+    const IFRAME_URL = "https://kdh-match.lovable.app";
 
     /*
-     * Sesuaikan tinggi sampai tepat di bawah kotak rekomendasi.
-     * Coba:
-     * 185 = lebih pendek
-     * 195 = normal
-     * 205 = lebih tinggi
+     * Tinggi yang terlihat sampai bagian bawah
+     * kotak rekomendasi pertandingan.
      */
     const VISIBLE_HEIGHT = 195;
 
+    /*
+     * Tinggi asli halaman dalam iframe.
+     */
     const IFRAME_HEIGHT = 230;
-    const IFRAME_URL = "https://kdh-match.lovable.app";
 
-    function important(element, property, value) {
+    let sedangMemasang = false;
+
+    function setImportant(element, property, value) {
         if (!element) return;
 
         element.style.setProperty(
@@ -26,23 +29,29 @@
         );
     }
 
+    /*
+     * Menghapus seluruh widget lama agar perubahan
+     * tinggi benar-benar diterapkan.
+     */
     function hapusWidgetLama() {
-        /*
-         * Hapus semua widget lama dengan ID yang sama.
-         */
         document
-            .querySelectorAll("#" + WIDGET_ID)
-            .forEach(element => element.remove());
+            .querySelectorAll(
+                "#" + OLD_WIDGET_ID +
+                ", #" + NEW_WIDGET_ID
+            )
+            .forEach(function (element) {
+                element.remove();
+            });
 
-        /*
-         * Hapus iframe duplikat yang mungkin masih tertinggal.
-         */
         document
             .querySelectorAll(
                 'iframe[src*="kdh-match.lovable.app"]'
             )
-            .forEach(iframe => {
-                const wrapper = iframe.parentElement;
+            .forEach(function (iframe) {
+                const wrapper = iframe.closest(
+                    "#" + OLD_WIDGET_ID +
+                    ", #" + NEW_WIDGET_ID
+                );
 
                 if (wrapper) {
                     wrapper.remove();
@@ -55,116 +64,233 @@
     function buatWidget() {
         const widget = document.createElement("div");
 
-        widget.id = WIDGET_ID;
+        widget.id = NEW_WIDGET_ID;
 
-        important(widget, "width", "100%");
-        important(
+        setImportant(widget, "display", "block");
+        setImportant(widget, "position", "relative");
+        setImportant(widget, "width", "100%");
+        setImportant(
             widget,
             "height",
             VISIBLE_HEIGHT + "px"
         );
-        important(
+        setImportant(
             widget,
             "min-height",
             VISIBLE_HEIGHT + "px"
         );
-        important(
+        setImportant(
             widget,
             "max-height",
             VISIBLE_HEIGHT + "px"
         );
-        important(widget, "margin", "0");
-        important(widget, "padding", "0");
-        important(widget, "overflow", "hidden");
-        important(widget, "position", "relative");
-        important(widget, "display", "block");
-        important(widget, "line-height", "0");
-        important(widget, "font-size", "0");
-        important(widget, "box-sizing", "border-box");
+        setImportant(widget, "margin", "0");
+        setImportant(widget, "padding", "0");
+        setImportant(widget, "overflow", "hidden");
+        setImportant(widget, "line-height", "0");
+        setImportant(widget, "font-size", "0");
+        setImportant(widget, "box-sizing", "border-box");
 
         widget.style.borderRadius = "10px";
 
         const iframe = document.createElement("iframe");
 
         iframe.src = IFRAME_URL;
-        iframe.loading = "lazy";
         iframe.scrolling = "no";
+        iframe.loading = "eager";
         iframe.setAttribute("frameborder", "0");
 
-        important(iframe, "position", "absolute");
-        important(iframe, "top", "0");
-        important(iframe, "left", "0");
-        important(iframe, "width", "100%");
-        important(
+        setImportant(iframe, "display", "block");
+        setImportant(iframe, "position", "absolute");
+        setImportant(iframe, "top", "0");
+        setImportant(iframe, "left", "0");
+        setImportant(iframe, "width", "100%");
+        setImportant(
             iframe,
             "height",
             IFRAME_HEIGHT + "px"
         );
-        important(
+        setImportant(
             iframe,
             "min-height",
             IFRAME_HEIGHT + "px"
         );
-        important(
+        setImportant(
             iframe,
             "max-height",
             IFRAME_HEIGHT + "px"
         );
-        important(iframe, "border", "none");
-        important(iframe, "margin", "0");
-        important(iframe, "padding", "0");
-        important(iframe, "display", "block");
+        setImportant(iframe, "border", "0");
+        setImportant(iframe, "margin", "0");
+        setImportant(iframe, "padding", "0");
 
         widget.appendChild(iframe);
 
         return widget;
     }
 
-    function hilangkanKotakKosong(target) {
-        /*
-         * Elemen target inilah yang kemungkinan menjadi
-         * area kosong panjang pada gambar.
-         */
-        important(target, "display", "none");
-        important(target, "height", "0");
-        important(target, "min-height", "0");
-        important(target, "max-height", "0");
-        important(target, "margin", "0");
-        important(target, "padding", "0");
-        important(target, "overflow", "hidden");
-        important(target, "border", "none");
+    /*
+     * Menyembunyikan kotak kosong yang berada
+     * di bawah widget.
+     */
+    function sembunyikanTarget(target) {
+        target.setAttribute(
+            "data-kdh-hidden-target",
+            "true"
+        );
 
-        const parent = target.parentElement;
+        setImportant(target, "display", "none");
+        setImportant(target, "visibility", "hidden");
+        setImportant(target, "width", "0");
+        setImportant(target, "height", "0");
+        setImportant(target, "min-height", "0");
+        setImportant(target, "max-height", "0");
+        setImportant(target, "margin", "0");
+        setImportant(target, "padding", "0");
+        setImportant(target, "border", "0");
+        setImportant(target, "overflow", "hidden");
+    }
 
-        if (parent) {
-            important(parent, "height", "auto");
-            important(parent, "min-height", "0");
-            important(parent, "max-height", "none");
-            important(parent, "padding-bottom", "0");
-            important(parent, "margin-bottom", "0");
+    /*
+     * Mencari elemen konten berikutnya,
+     * termasuk jika berada di luar parent target.
+     */
+    function cariElemenBerikutnya(widget, target) {
+        let current = target;
+
+        for (let level = 0; level < 8; level++) {
+            let sibling = current.nextElementSibling;
+
+            while (sibling) {
+                const style = window.getComputedStyle(
+                    sibling
+                );
+
+                const rect =
+                    sibling.getBoundingClientRect();
+
+                if (
+                    style.display !== "none" &&
+                    style.visibility !== "hidden" &&
+                    rect.height > 20
+                ) {
+                    return sibling;
+                }
+
+                sibling = sibling.nextElementSibling;
+            }
+
+            current = current.parentElement;
+
+            if (
+                !current ||
+                current === document.body
+            ) {
+                break;
+            }
         }
 
-        const next = target.nextElementSibling;
+        return null;
+    }
 
-        if (next) {
-            important(next, "margin-top", "0");
-            important(next, "padding-top", "0");
+    /*
+     * Mengukur ruang kosong dan menarik konten
+     * berikutnya ke atas secara otomatis.
+     */
+    function potongRuangKosong(widget, target) {
+        const nextElement =
+            cariElemenBerikutnya(widget, target);
+
+        if (!nextElement) return;
+
+        setImportant(
+            nextElement,
+            "margin-top",
+            "0"
+        );
+
+        setImportant(
+            nextElement,
+            "padding-top",
+            "0"
+        );
+
+        requestAnimationFrame(function () {
+            const widgetRect =
+                widget.getBoundingClientRect();
+
+            const nextRect =
+                nextElement.getBoundingClientRect();
+
+            const gap =
+                nextRect.top - widgetRect.bottom;
+
+            /*
+             * Jika masih ada ruang lebih dari 5px,
+             * tarik bagian berikutnya ke atas.
+             */
+            if (gap > 5) {
+                setImportant(
+                    widget,
+                    "margin-bottom",
+                    "-" + Math.ceil(gap) + "px"
+                );
+            } else {
+                setImportant(
+                    widget,
+                    "margin-bottom",
+                    "0"
+                );
+            }
+        });
+    }
+
+    function rapikanParent(widget, target) {
+        let parent = target.parentElement;
+
+        for (let i = 0; i < 5 && parent; i++) {
+            setImportant(parent, "min-height", "0");
+            setImportant(parent, "padding-bottom", "0");
+            setImportant(parent, "margin-bottom", "0");
+
+            /*
+             * Jangan paksa height auto pada body dan html.
+             */
+            if (
+                parent !== document.body &&
+                parent !== document.documentElement
+            ) {
+                const computed =
+                    window.getComputedStyle(parent);
+
+                if (
+                    computed.height !== "auto" &&
+                    parent.scrollHeight >
+                        parent.clientHeight
+                ) {
+                    setImportant(
+                        parent,
+                        "height",
+                        "auto"
+                    );
+                }
+            }
+
+            parent = parent.parentElement;
         }
     }
 
     function pasangWidget() {
+        if (sedangMemasang) return false;
+
         const target = document.querySelector(
             TARGET_SELECTOR
         );
 
-        if (!target) {
-            return false;
-        }
+        if (!target) return false;
 
-        /*
-         * Jangan langsung return ketika widget lama ditemukan.
-         * Widget lama wajib dihapus agar ukuran terbaru diterapkan.
-         */
+        sedangMemasang = true;
+
         hapusWidgetLama();
 
         const widget = buatWidget();
@@ -174,53 +300,108 @@
             target
         );
 
-        hilangkanKotakKosong(target);
+        sembunyikanTarget(target);
+        rapikanParent(widget, target);
+
+        /*
+         * Jalankan beberapa kali karena layout situs
+         * dapat berubah setelah iframe selesai dimuat.
+         */
+        setTimeout(function () {
+            sembunyikanTarget(target);
+            rapikanParent(widget, target);
+            potongRuangKosong(widget, target);
+        }, 100);
+
+        setTimeout(function () {
+            sembunyikanTarget(target);
+            rapikanParent(widget, target);
+            potongRuangKosong(widget, target);
+        }, 700);
+
+        setTimeout(function () {
+            sembunyikanTarget(target);
+            rapikanParent(widget, target);
+            potongRuangKosong(widget, target);
+        }, 1500);
+
+        sedangMemasang = false;
 
         console.log(
-            "[OK] Widget dipasang dan ruang kosong dipotong"
+            "[OK] KDH widget dipasang dan gap dipotong"
         );
 
         return true;
     }
 
-    function start() {
-        let selesai = false;
+    function mulai() {
+        let attempts = 0;
 
-        const jalankan = () => {
-            if (!selesai && pasangWidget()) {
-                selesai = true;
+        const timer = setInterval(function () {
+            attempts++;
+
+            const existingWidget =
+                document.getElementById(
+                    NEW_WIDGET_ID
+                );
+
+            if (!existingWidget) {
+                pasangWidget();
+            } else {
+                const target =
+                    document.querySelector(
+                        TARGET_SELECTOR
+                    );
+
+                if (target) {
+                    sembunyikanTarget(target);
+                    rapikanParent(
+                        existingWidget,
+                        target
+                    );
+                    potongRuangKosong(
+                        existingWidget,
+                        target
+                    );
+                }
             }
-        };
 
-        jalankan();
-
-        const timer = setInterval(() => {
-            jalankan();
-
-            /*
-             * Pastikan elemen target tetap tersembunyi
-             * jika halaman melakukan render ulang.
-             */
-            const target = document.querySelector(
-                TARGET_SELECTOR
-            );
-
-            if (target) {
-                hilangkanKotakKosong(target);
+            if (attempts >= 60) {
+                clearInterval(timer);
             }
         }, 500);
 
-        setTimeout(() => {
-            clearInterval(timer);
-        }, 30000);
+        pasangWidget();
+
+        window.addEventListener(
+            "resize",
+            function () {
+                const widget =
+                    document.getElementById(
+                        NEW_WIDGET_ID
+                    );
+
+                const target =
+                    document.querySelector(
+                        TARGET_SELECTOR
+                    );
+
+                if (widget && target) {
+                    potongRuangKosong(
+                        widget,
+                        target
+                    );
+                }
+            }
+        );
     }
 
     if (document.readyState === "loading") {
         document.addEventListener(
             "DOMContentLoaded",
-            start
+            mulai
         );
     } else {
-        start();
+        mulai();
     }
 })();
