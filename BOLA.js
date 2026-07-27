@@ -1,120 +1,192 @@
-(() => {
-    "use strict";
+<style>
+  #kdh-widget {
+    width: 100% !important;
 
-    const TARGET_SELECTOR = ".c-dLTxpX";
-    const WIDGET_ID = "kdh-match-widget";
-    const HEIGHT = 40;
+    padding: 0 !important;
+    margin: 0 !important;
 
-    function paksaUkuran() {
-        const target = document.querySelector(TARGET_SELECTOR);
+    min-height: 40px !important;
 
-        if (!target) {
-            return false;
-        }
+    /* Tinggi area widget yang terlihat */
+    height: 198px !important;
+    max-height: 198px !important;
 
-        target.style.setProperty("padding", "0px", "important");
-        target.style.setProperty("margin", "0px", "important");
+    overflow: hidden !important;
+    box-sizing: border-box !important;
 
-        target.style.setProperty(
-            "height",
-            HEIGHT + "px",
-            "important"
-        );
+    line-height: 0 !important;
+    font-size: 0 !important;
 
-        target.style.setProperty(
-            "min-height",
-            HEIGHT + "px",
-            "important"
-        );
+    border-radius: 10px !important;
+  }
 
-        target.style.setProperty(
-            "max-height",
-            HEIGHT + "px",
-            "important"
-        );
+  #kdh-widget iframe {
+    display: block !important;
 
-        target.style.setProperty(
-            "overflow",
-            "hidden",
-            "important"
-        );
+    width: 100% !important;
+    height: 230px !important;
+    min-height: 230px !important;
 
-        target.style.setProperty(
-            "box-sizing",
-            "border-box",
-            "important"
-        );
+    margin: 0 !important;
+    padding: 0 !important;
 
-        const widget = document.getElementById(WIDGET_ID);
+    border: 0 !important;
+    overflow: hidden !important;
+  }
 
-        if (widget) {
-            widget.style.setProperty(
-                "padding",
-                "0px",
-                "important"
-            );
+  #kdh-widget > div {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+</style>
 
-            widget.style.setProperty(
-                "margin",
-                "0px",
-                "important"
-            );
+<div id="kdh-widget"></div>
 
-            widget.style.setProperty(
-                "height",
-                HEIGHT + "px",
-                "important"
-            );
+<script
+  src="https://kdh-match.lovable.app/widget.js"
+  data-target="kdh-widget"
+  defer>
+</script>
 
-            widget.style.setProperty(
-                "min-height",
-                HEIGHT + "px",
-                "important"
-            );
+<script>
+(function () {
+  "use strict";
 
-            widget.style.setProperty(
-                "max-height",
-                HEIGHT + "px",
-                "important"
-            );
+  var HOST_ID = "kdh-widget";
+  var VISIBLE_HEIGHT = 198;
 
-            widget.style.setProperty(
-                "overflow",
-                "hidden",
-                "important"
-            );
-        }
+  function paksaUkuranWidget() {
+    var host = document.getElementById(HOST_ID);
 
-        return true;
+    if (!host) {
+      return;
     }
 
-    function start() {
-        paksaUkuran();
+    host.style.setProperty(
+      "padding",
+      "0px",
+      "important"
+    );
 
-        const timer = setInterval(() => {
-            paksaUkuran();
-        }, 300);
+    host.style.setProperty(
+      "margin",
+      "0px",
+      "important"
+    );
 
-        setTimeout(() => {
-            clearInterval(timer);
-        }, 30000);
+    host.style.setProperty(
+      "min-height",
+      "40px",
+      "important"
+    );
 
-        const observer = new MutationObserver(() => {
-            requestAnimationFrame(paksaUkuran);
-        });
+    host.style.setProperty(
+      "height",
+      VISIBLE_HEIGHT + "px",
+      "important"
+    );
 
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+    host.style.setProperty(
+      "max-height",
+      VISIBLE_HEIGHT + "px",
+      "important"
+    );
+
+    host.style.setProperty(
+      "overflow",
+      "hidden",
+      "important"
+    );
+
+    var children = host.querySelectorAll(
+      "div, section, iframe"
+    );
+
+    children.forEach(function (element) {
+      element.style.setProperty(
+        "margin",
+        "0px",
+        "important"
+      );
+
+      element.style.setProperty(
+        "padding",
+        "0px",
+        "important"
+      );
+    });
+
+    var iframe = host.querySelector("iframe");
+
+    if (iframe) {
+      iframe.style.setProperty(
+        "width",
+        "100%",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "height",
+        "230px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "min-height",
+        "230px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "border",
+        "0",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "display",
+        "block",
+        "important"
+      );
+    }
+  }
+
+  function mulai() {
+    paksaUkuranWidget();
+
+    var host = document.getElementById(HOST_ID);
+
+    if (!host) {
+      return;
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            start
-        );
-    } else {
-        start();
-    }
+    var observer = new MutationObserver(function () {
+      requestAnimationFrame(
+        paksaUkuranWidget
+      );
+    });
+
+    observer.observe(host, {
+      childList: true,
+      subtree: true
+    });
+
+    var timer = setInterval(function () {
+      paksaUkuranWidget();
+    }, 500);
+
+    setTimeout(function () {
+      clearInterval(timer);
+    }, 20000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      mulai
+    );
+  } else {
+    mulai();
+  }
 })();
+</script>
