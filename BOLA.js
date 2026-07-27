@@ -2,20 +2,20 @@
   #kdh-widget {
     display: block !important;
     position: relative !important;
-
     width: 100% !important;
-    height: 205px !important;
-    min-height: 205px !important;
-    max-height: 205px !important;
 
-    margin: 0 0 4px 0 !important;
+    /* Tinggi tampilan widget */
+    height: 215px !important;
+    min-height: 215px !important;
+    max-height: 215px !important;
+
+    margin: 0 !important;
     padding: 0 !important;
 
     overflow: hidden !important;
     box-sizing: border-box !important;
     line-height: 0 !important;
     font-size: 0 !important;
-
     border-radius: 10px !important;
   }
 
@@ -36,281 +36,288 @@
     padding: 0 !important;
   }
 
-  /* Target tepat di bawah widget */
-  .c-dLTxpX[data-kdh-target="true"] {
+  .kdh-target-rapat {
     margin-top: 0 !important;
     padding-top: 0 !important;
   }
+
+  .kdh-target-kosong {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
 </style>
 
+<!-- WIDGET RESMI -->
+<div id="kdh-widget"></div>
+
+<script
+  src="https://kdh-match.lovable.app/widget.js"
+  data-target="kdh-widget"
+  defer>
+</script>
+
+<!-- PINDAHKAN WIDGET KE ATAS .c-dLTxpX -->
 <script>
 (function () {
   "use strict";
 
-  var TARGET_SELECTOR = ".c-dLTxpX";
   var HOST_ID = "kdh-widget";
-  var WIDGET_SCRIPT =
-    "https://kdh-match.lovable.app/widget.js";
+  var TARGET_SELECTOR = ".c-dLTxpX";
+  var sudahDipindahkan = false;
 
-  /* Tinggi bagian widget yang terlihat */
-  var WIDGET_HEIGHT = 205;
-
-  /* Jarak widget dengan .c-dLTxpX */
-  var GAP_BOTTOM = 4;
-
-  var sudahDipasang = false;
-
-  function setImportant(element, property, value) {
-    if (!element) return;
-
-    element.style.setProperty(
-      property,
-      value,
-      "important"
-    );
-  }
-
-  function cariTargetTerlihat() {
-    var targets = document.querySelectorAll(
-      TARGET_SELECTOR
-    );
-
-    for (var i = 0; i < targets.length; i++) {
-      var rect =
-        targets[i].getBoundingClientRect();
-
-      var style =
-        window.getComputedStyle(targets[i]);
-
-      if (
-        rect.width > 0 &&
-        style.display !== "none" &&
-        style.visibility !== "hidden"
-      ) {
-        return targets[i];
-      }
+  function targetTerlihat(element) {
+    if (!element) {
+      return false;
     }
 
-    return null;
+    var rect = element.getBoundingClientRect();
+    var style = window.getComputedStyle(element);
+
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden"
+    );
   }
 
-  function hapusWidgetLama() {
-    document
-      .querySelectorAll(
-        "#kdh-widget," +
-        "#kdh-match-widget," +
-        "#kdh-match-widget-v3," +
-        "#kdh-match-widget-final," +
-        "#kdh-match-widget-cropped"
-      )
-      .forEach(function (element) {
-        element.remove();
-      });
+  function cariTargetYangSesuai() {
+    var targets = Array.from(
+      document.querySelectorAll(TARGET_SELECTOR)
+    ).filter(targetTerlihat);
 
-    document
-      .querySelectorAll(
-        'iframe[src*="kdh-match.lovable.app"]'
-      )
-      .forEach(function (iframe) {
-        var parent = iframe.parentElement;
+    if (!targets.length) {
+      return null;
+    }
 
-        if (parent) {
-          parent.remove();
-        } else {
-          iframe.remove();
-        }
-      });
+    /*
+     * Prioritaskan .c-dLTxpX yang berupa area kosong,
+     * bukan yang berisi tombol, gambar, atau menu.
+     */
+    var targetKosong = targets.find(function (target) {
+      var teks = target.textContent
+        .replace(/\s+/g, " ")
+        .trim();
 
-    document
-      .querySelectorAll(
-        'script[src*="kdh-match.lovable.app/widget.js"]'
-      )
-      .forEach(function (script) {
-        script.remove();
-      });
-  }
+      var adaKontenInteraktif = target.querySelector(
+        "a, button, img, iframe, input, select"
+      );
 
-  function buatHostWidget() {
-    var host = document.createElement("div");
+      return (
+        teks.length === 0 &&
+        !adaKontenInteraktif &&
+        target.getBoundingClientRect().height >= 60
+      );
+    });
 
-    host.id = HOST_ID;
-
-    setImportant(host, "display", "block");
-    setImportant(host, "position", "relative");
-    setImportant(host, "width", "100%");
-
-    setImportant(
-      host,
-      "height",
-      WIDGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      host,
-      "min-height",
-      WIDGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      host,
-      "max-height",
-      WIDGET_HEIGHT + "px"
-    );
-
-    setImportant(
-      host,
-      "margin",
-      "0 0 " + GAP_BOTTOM + "px 0"
-    );
-
-    setImportant(host, "padding", "0");
-    setImportant(host, "overflow", "hidden");
-    setImportant(host, "box-sizing", "border-box");
-    setImportant(host, "line-height", "0");
-    setImportant(host, "font-size", "0");
-
-    return host;
+    return targetKosong || targets[0];
   }
 
   function rapikanTarget(target) {
-    target.setAttribute(
-      "data-kdh-target",
-      "true"
+    if (!target) {
+      return;
+    }
+
+    target.classList.add("kdh-target-rapat");
+
+    var teks = target.textContent
+      .replace(/\s+/g, " ")
+      .trim();
+
+    var adaKontenInteraktif = target.querySelector(
+      "a, button, img, iframe, input, select"
     );
 
-    setImportant(target, "margin-top", "0");
-    setImportant(target, "padding-top", "0");
-
     /*
-     * Jangan paksa tinggi target menjadi 40px.
-     * Biarkan isi aslinya tampil normal.
+     * Hanya potong menjadi 40px jika target memang kosong.
+     * Target yang memiliki menu atau isi tidak dihancurkan.
      */
-    setImportant(target, "min-height", "0");
+    if (
+      teks.length === 0 &&
+      !adaKontenInteraktif
+    ) {
+      target.classList.add("kdh-target-kosong");
+    }
 
     var parent = target.parentElement;
 
     if (parent) {
-      setImportant(parent, "gap", "0");
-      setImportant(parent, "row-gap", "0");
+      parent.style.setProperty(
+        "gap",
+        "0px",
+        "important"
+      );
+
+      parent.style.setProperty(
+        "row-gap",
+        "0px",
+        "important"
+      );
     }
   }
 
-  function muatScriptWidget() {
-    var script = document.createElement("script");
+  function rapikanWidget(host) {
+    if (!host) {
+      return;
+    }
 
-    script.src = WIDGET_SCRIPT;
-    script.setAttribute(
-      "data-target",
-      HOST_ID
+    host.style.setProperty(
+      "margin",
+      "0px",
+      "important"
     );
 
-    script.async = true;
+    host.style.setProperty(
+      "padding",
+      "0px",
+      "important"
+    );
 
-    document.body.appendChild(script);
-  }
-
-  function paksaUkuranSetelahRender() {
-    var host =
-      document.getElementById(HOST_ID);
-
-    if (!host) return;
-
-    setImportant(
-      host,
+    host.style.setProperty(
       "height",
-      WIDGET_HEIGHT + "px"
+      "215px",
+      "important"
     );
 
-    setImportant(
-      host,
+    host.style.setProperty(
       "min-height",
-      WIDGET_HEIGHT + "px"
+      "215px",
+      "important"
     );
 
-    setImportant(
-      host,
+    host.style.setProperty(
       "max-height",
-      WIDGET_HEIGHT + "px"
+      "215px",
+      "important"
     );
 
-    setImportant(host, "overflow", "hidden");
+    host.style.setProperty(
+      "overflow",
+      "hidden",
+      "important"
+    );
 
     var iframe = host.querySelector("iframe");
 
     if (iframe) {
-      setImportant(iframe, "display", "block");
-      setImportant(iframe, "width", "100%");
-      setImportant(iframe, "height", "230px");
-      setImportant(iframe, "min-height", "230px");
-      setImportant(iframe, "margin", "0");
-      setImportant(iframe, "padding", "0");
-      setImportant(iframe, "border", "0");
+      iframe.style.setProperty(
+        "display",
+        "block",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "width",
+        "100%",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "height",
+        "230px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "margin",
+        "0px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "padding",
+        "0px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "border",
+        "0",
+        "important"
+      );
     }
   }
 
-  function pasangWidget() {
-    if (sudahDipasang) {
-      paksaUkuranSetelahRender();
-      return true;
-    }
+  function pindahkanWidget() {
+    var host = document.getElementById(HOST_ID);
+    var target = cariTargetYangSesuai();
 
-    var target = cariTargetTerlihat();
-
-    if (!target || !target.parentNode) {
+    if (!host || !target || !target.parentNode) {
       return false;
     }
 
-    hapusWidgetLama();
-
-    var host = buatHostWidget();
-
     /*
-     * Widget dipasang tepat di atas .c-dLTxpX
+     * Letakkan widget tepat sebelum .c-dLTxpX.
      */
-    target.parentNode.insertBefore(
-      host,
-      target
-    );
+    if (host.nextElementSibling !== target) {
+      target.parentNode.insertBefore(
+        host,
+        target
+      );
+    }
 
+    rapikanWidget(host);
     rapikanTarget(target);
-    muatScriptWidget();
 
-    sudahDipasang = true;
-
-    setTimeout(
-      paksaUkuranSetelahRender,
-      300
-    );
-
-    setTimeout(
-      paksaUkuranSetelahRender,
-      1000
-    );
-
-    setTimeout(
-      paksaUkuranSetelahRender,
-      2000
-    );
+    sudahDipindahkan = true;
 
     console.log(
-      "[OK] Widget dipasang tepat di atas .c-dLTxpX"
+      "[OK] KDH Widget tampil di atas .c-dLTxpX"
     );
 
     return true;
   }
 
   function mulai() {
-    if (pasangWidget()) return;
+    pindahkanWidget();
+
+    var percobaan = 0;
 
     var timer = setInterval(function () {
-      if (pasangWidget()) {
+      percobaan++;
+
+      pindahkanWidget();
+
+      var host =
+        document.getElementById(HOST_ID);
+
+      if (host) {
+        rapikanWidget(host);
+      }
+
+      if (
+        sudahDipindahkan &&
+        host &&
+        host.querySelector("iframe")
+      ) {
+        clearInterval(timer);
+      }
+
+      if (percobaan >= 100) {
         clearInterval(timer);
       }
     }, 300);
 
-    setTimeout(function () {
-      clearInterval(timer);
-    }, 30000);
+    /*
+     * Menangani halaman yang render ulang dengan React.
+     */
+    var observer = new MutationObserver(function () {
+      window.requestAnimationFrame(function () {
+        pindahkanWidget();
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   }
 
   if (document.readyState === "loading") {
