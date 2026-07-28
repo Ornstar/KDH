@@ -1,6 +1,6 @@
 (function () {
     const POPUP_IMAGES = [
-        'https://plcl.me/images/Zf4KY.jpg'
+        'https://www.image2url.com/r2/default/images/1785199594428-938f90b0-842b-4719-b356-974147a4d596.jpg'
     ];
 
     const DELAY_KEY = 'popup_delay_1h';
