@@ -6,7 +6,7 @@
     const WIDGET_URL = "https://kdh-match.lovable.app";
 
     /* Tinggi widget yang terlihat */
-    const WIDGET_HEIGHT = 132;
+    const WIDGET_HEIGHT = 160;
 
     /* Tinggi asli iframe */
     const IFRAME_HEIGHT = 230;
