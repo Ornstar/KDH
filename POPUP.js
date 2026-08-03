@@ -1,430 +1,883 @@
+"use strict";
+
 (function () {
-    const POPUP_IMAGES = [
-        'https://www.image2url.com/r2/default/files/1785306170953-33ef501b-e04f-48b9-ac23-5321506b59f2.jpg',
-        'https://www.image2url.com/r2/default/files/1785306239587-1134ca5c-c0e2-4b9f-a716-9c3aa0a9f7d0.jpg',
-        'https://www.image2url.com/r2/default/images/1785199594428-938f90b0-842b-4719-b356-974147a4d596.jpg'
-    ];
+  const IMG = [
+    "https://www.image2url.com/r2/default/images/1785784031351-1c175e6d-55a2-4518-9c55-b176180f3ba9.png",
+    "https://www.image2url.com/r2/default/images/1785784064177-d0473d13-17f7-4dd5-a6b5-62a5d0b05960.png",
+    "https://www.image2url.com/r2/default/images/1785784092063-48dc414d-91ea-496a-85ff-6a92e60f6ea0.png"
+  ];
 
-    const DELAY_KEY = 'popup_delay_1h';
-    const SLIDE_INTERVAL = 10000;
+  const DELAY_KEY = "popup_delay_1h";
+  const SLIDER_INTERVAL = 7000;
+  const STYLE_ID = "kdh-popup-style";
+  const POPUP_ID = "kdh-popup";
+  const OVERLAY_ID = "kdh-popup-overlay";
 
-    let popupCreated = false;
-    let slideTimer = null;
-    let currentIndex = 0;
+  let popupCreated = false;
+  let currentIndex = 0;
+  let sliderTimer = null;
+  let changingSlide = false;
 
-    function canShowPopup() {
-        if (location.pathname !== '/') return false;
+  /* ==============================
+     CEK HALAMAN
+  ============================== */
 
-        const lastShow = Number(localStorage.getItem(DELAY_KEY) || 0);
-        if (lastShow && Date.now() - lastShow < 36e5) return false;
+  function isAllowedPage() {
+    const path = location.pathname
+      .replace(/\/+$/, "")
+      .toLowerCase();
 
-        return true;
+    return (
+      path === "" ||
+      path === "/" ||
+      path.includes("home")
+    );
+  }
+
+  function canShowPopup() {
+    if (!isAllowedPage()) return false;
+
+    const lastClosed = Number(
+      localStorage.getItem(DELAY_KEY) || 0
+    );
+
+    return !(
+      lastClosed &&
+      Date.now() - lastClosed < 3600000
+    );
+  }
+
+  /* ==============================
+     PRELOAD SEMUA GAMBAR
+  ============================== */
+
+  function preloadImages() {
+    return Promise.all(
+      IMG.map(function (url) {
+        return new Promise(function (resolve) {
+          const preload = new Image();
+          preload.decoding = "async";
+
+          preload.onload = function () {
+            if (typeof preload.decode === "function") {
+              preload
+                .decode()
+                .catch(function () {})
+                .finally(resolve);
+            } else {
+              resolve();
+            }
+          };
+
+          preload.onerror = resolve;
+          preload.src = url;
+
+          if (preload.complete && preload.naturalWidth > 0) {
+            if (typeof preload.decode === "function") {
+              preload
+                .decode()
+                .catch(function () {})
+                .finally(resolve);
+            } else {
+              resolve();
+            }
+          }
+        });
+      })
+    );
+  }
+
+  /* ==============================
+     CSS
+  ============================== */
+
+  function injectStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+
+    style.textContent = `
+      @keyframes kdhFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes kdhFadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+
+      @keyframes kdhSlideIn {
+        from {
+          transform: translateY(25px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes kdhPopupPullUp {
+        from {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(-110vh);
+          opacity: 0;
+        }
+      }
+
+      @keyframes kdhShine {
+        0% { left: -40%; }
+        100% { left: 125%; }
+      }
+
+      #${OVERLAY_ID} {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(12, 10, 3, .48),
+            rgba(0, 0, 0, .9)
+          );
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        animation: kdhFadeIn .35s ease forwards;
+      }
+
+      #${OVERLAY_ID}.fade-out {
+        animation: kdhFadeOut .35s ease forwards;
+      }
+
+      #${POPUP_ID} {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        box-sizing: border-box;
+        background: transparent;
+        overflow-y: auto;
+      }
+
+      #${POPUP_ID}.pull-up {
+        animation:
+          kdhPopupPullUp .72s
+          cubic-bezier(.55, .05, .25, 1)
+          forwards;
+        pointer-events: none;
+      }
+
+      #kdh-popup-box {
+        position: relative;
+        animation: kdhSlideIn .45s ease forwards;
+        filter: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        border: none !important;
+      }
+
+      #kdh-close {
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background:
+          linear-gradient(
+            180deg,
+            #d4af37,
+            #4a3608 60%,
+            #090909
+          );
+        color: #fff;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 9999;
+        border: 1px solid #f3d77a;
+        box-shadow:
+          0 0 16px rgba(212, 175, 55, .72);
+      }
+
+      #kdh-image-stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        max-width: 92vw;
+        max-height: 58vh;
+        overflow: hidden;
+        background: transparent !important;
+      }
+
+      #kdh-popup-img,
+      #kdh-popup-img-next {
+        grid-area: 1 / 1;
+        display: block;
+        max-width: 92vw;
+        max-height: 58vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 0;
+        box-shadow: none !important;
+        filter: none !important;
+        background: transparent !important;
+        border: none !important;
+        will-change: transform, opacity;
+      }
+
+      #kdh-popup-img {
+        position: relative;
+        z-index: 1;
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      #kdh-popup-img-next {
+        position: relative;
+        z-index: 2;
+        opacity: 0;
+        transform: translateX(100%);
+        pointer-events: none;
+      }
+
+      #kdh-popup-img-next.slide-rtl {
+        opacity: 1;
+        transform: translateX(0);
+        transition:
+          transform .7s cubic-bezier(.22, .8, .28, 1),
+          opacity .3s ease;
+      }
+
+      #kdh-popup-img.slide-old-left {
+        opacity: .28;
+        transform: translateX(-18%);
+        transition:
+          transform .7s cubic-bezier(.22, .8, .28, 1),
+          opacity .55s ease;
+      }
+
+      .kdh-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid #f3d77a;
+        background:
+          linear-gradient(
+            180deg,
+            #b8860b,
+            #2b2108
+          );
+        color: #fff;
+        font-size: 24px;
+        font-weight: 900;
+        cursor: pointer;
+        z-index: 9998;
+        line-height: 22px;
+        box-shadow:
+          0 0 14px rgba(212, 175, 55, .55);
+      }
+
+      #kdh-prev {
+        left: 8px;
+      }
+
+      #kdh-next {
+        right: 8px;
+      }
+
+      #kdh-dots {
+        position: absolute;
+        left: 50%;
+        bottom: 10px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        z-index: 9998;
+        padding: 5px 8px;
+        border-radius: 20px;
+        background: rgba(0, 0, 0, .25);
+      }
+
+      .kdh-dot {
+        width: 8px;
+        height: 8px;
+        min-width: 8px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, .5);
+        padding: 0;
+        cursor: pointer;
+        transition:
+          transform .2s ease,
+          background .2s ease;
+      }
+
+      .kdh-dot.active {
+        background: #d4af37;
+        transform: scale(1.3);
+        box-shadow: 0 0 10px #d4af37;
+      }
+
+      #kdh-title {
+        font-weight: 900;
+        font-size: 16px;
+        color: #f7e7a9;
+        letter-spacing: 2px;
+        text-shadow:
+          0 0 10px rgba(212, 175, 55, .92),
+          0 0 25px rgba(212, 175, 55, .55);
+      }
+
+      .kdh-gif-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .kdh-gif-box {
+        position: relative;
+        width: 90px;
+      }
+
+      .kdh-gif-box img {
+        display: block;
+        width: 100%;
+        border-radius: 12px;
+        pointer-events: none;
+        box-shadow:
+          0 0 10px rgba(212, 175, 55, .38);
+      }
+
+      .kdh-btn-row {
+        width: 310px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2px;
+      }
+
+      .kdh-btn,
+      .kdh-ok {
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 900;
+        color: #fff !important;
+        transition:
+          transform .18s ease,
+          filter .18s ease;
+      }
+
+      .kdh-btn {
+        width: 148px;
+        padding: 12px 0;
+        border-radius: 15px;
+        font-size: 12px;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: .5px;
+        background:
+          linear-gradient(
+            180deg,
+            #d4af37 0%,
+            #9b7408 30%,
+            #3b2c07 70%,
+            #090909 100%
+          );
+        border: 1px solid #f3d77a;
+        box-shadow:
+          0 0 12px rgba(212, 175, 55, .72),
+          0 0 28px rgba(212, 175, 55, .4),
+          0 9px 22px rgba(0, 0, 0, .55),
+          inset 0 1px 0 rgba(255, 255, 255, .2);
+      }
+
+      .kdh-ok {
+        width: 120px;
+        padding: 11px 0;
+        border-radius: 14px;
+        font-size: 14px;
+        background:
+          linear-gradient(
+            180deg,
+            #d4af37 0%,
+            #9b7408 38%,
+            #3b2c07 75%,
+            #090909 100%
+          );
+        border: 1px solid #f7e7a9;
+        box-shadow:
+          0 0 12px rgba(212, 175, 55, .82),
+          0 0 25px rgba(212, 175, 55, .45),
+          0 8px 20px rgba(0, 0, 0, .5),
+          inset 0 1px 0 rgba(255, 255, 255, .2);
+      }
+
+      .kdh-btn:hover,
+      .kdh-ok:hover {
+        transform: scale(1.045);
+        filter: brightness(1.18);
+      }
+
+      .kdh-btn:active,
+      .kdh-ok:active {
+        transform: scale(.96);
+      }
+
+      .kdh-btn::before,
+      .kdh-ok::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -40%;
+        width: 25%;
+        height: 100%;
+        background:
+          linear-gradient(
+            120deg,
+            rgba(255, 255, 255, 0),
+            rgba(255, 236, 160, .95),
+            rgba(255, 255, 255, 0)
+          );
+        transform: skewX(-25deg);
+        animation: kdhShine 2s infinite;
+      }
+
+      @media (max-width: 768px) {
+        #${POPUP_ID} {
+          gap: 8px;
+        }
+
+        #kdh-image-stage,
+        #kdh-popup-img,
+        #kdh-popup-img-next {
+          max-width: 94vw;
+          max-height: 55vh;
+        }
+
+        .kdh-gif-box {
+          width: 78px;
+        }
+
+        .kdh-btn-row {
+          width: 310px;
+          gap: 8px;
+        }
+
+        .kdh-btn {
+          width: 148px;
+          font-size: 12px;
+          padding: 11px 0;
+        }
+
+        .kdh-ok {
+          width: 115px;
+          font-size: 13px;
+          padding: 10px 0;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  /* ==============================
+     BUAT POPUP
+  ============================== */
+
+  async function createPopup() {
+    if (
+      popupCreated ||
+      !canShowPopup() ||
+      !document.body
+    ) {
+      return;
     }
 
-    function createPopup() {
-        if (popupCreated) return;
-        if (!canShowPopup()) return;
-        if (!document.body) return;
+    popupCreated = true;
+    injectStyle();
 
-        popupCreated = true;
+    await preloadImages();
 
-        const host = document.createElement('div');
-        host.id = 'popup-shadow-host';
-        document.body.appendChild(host);
+    const overlay = document.createElement("div");
+    overlay.id = OVERLAY_ID;
 
-        const shadow = host.attachShadow({ mode: 'open' });
+    const popup = document.createElement("div");
+    popup.id = POPUP_ID;
 
-        const style = document.createElement('style');
-        style.textContent = `
-            #overlay{
-                position:fixed;
-                inset:0;
-                z-index:2147483646;
-                backdrop-filter:blur(8px);
-                -webkit-backdrop-filter:blur(8px);
-                background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.65));
-                animation:fade-in .4s ease forwards;
-            }
+    popup.innerHTML = `
+      <div id="kdh-popup-box">
 
-            #overlay.fade-out{
-                animation:fade-out .4s ease forwards;
-            }
+        <div id="kdh-close" title="Tutup">
+          ✕
+        </div>
 
-            #popup{
-                position:fixed;
-                inset:0;
-                z-index:2147483647;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                flex-direction:column;
-                gap:10px;
-            }
+        <button
+          type="button"
+          class="kdh-nav"
+          id="kdh-prev"
+          aria-label="Gambar sebelumnya"
+        >
+          ‹
+        </button>
 
-            #popup-box{
-                position:relative;
-                filter:drop-shadow(0 18px 40px rgba(0,0,0,.55));
-                animation:slide-in .6s cubic-bezier(.16,1,.3,1) forwards;
-            }
+        <div id="kdh-image-stage">
+          <img
+            id="kdh-popup-img"
+            src="${IMG[0]}"
+            alt="Dirgahayu Indonesia Slide 1"
+          >
 
-            #popup-box.slide-out{
-                animation:slide-out .6s cubic-bezier(.16,1,.3,1) forwards;
-            }
+          <img
+            id="kdh-popup-img-next"
+            src=""
+            alt=""
+            aria-hidden="true"
+          >
+        </div>
 
-            #close-x{
-                position:absolute;
-                top:-12px;
-                right:-12px;
-                width:32px;
-                height:32px;
-                border-radius:50%;
-                background:linear-gradient(180deg,#ff4b4b,#9e0000);
-                color:#fff;
-                font-weight:900;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                cursor:pointer;
-                z-index:9999;
-                box-shadow:0 6px 16px rgba(0,0,0,.45);
-            }
+        <button
+          type="button"
+          class="kdh-nav"
+          id="kdh-next"
+          aria-label="Gambar berikutnya"
+        >
+          ›
+        </button>
 
-            #popup-img{
-                display:block;
-                max-width:100%;
-                height:auto;
-                border-radius:8px;
-                opacity:1;
-                transition:opacity .45s ease;
-                cursor:default;
-            }
+        <div id="kdh-dots"></div>
+      </div>
 
-            #popup-img.fade{
-                opacity:0;
-            }
+      <div id="kdh-title">
+        DIRGAHAYU INDONESIA
+      </div>
 
-            .nav-btn{
-                position:absolute;
-                top:50%;
-                transform:translateY(-50%);
-                width:24px;
-                height:24px;
-                border:none;
-                background:rgba(0,0,0,.35);
-                color:#fff;
-                font-size:22px;
-                font-weight:700;
-                cursor:pointer;
-                z-index:9998;
-                line-height:20px;
-                padding:0;
-                border-radius:50%;
-            }
+      <div class="kdh-gif-row">
 
-            #prev-btn{
-                left:8px;
-            }
+        <div class="kdh-gif-box">
+          <img
+            src="https://www.image2url.com/r2/default/gifs/1776202907511-66e0b111-777d-4ebe-913e-e96b5c3cbe5f.gif"
+            alt="Starlight Princess"
+          >
+        </div>
 
-            #next-btn{
-                right:8px;
-            }
+        <div class="kdh-gif-box">
+          <img
+            src="https://www.image2url.com/r2/default/gifs/1784829809669-8e602d39-2842-4aa9-97c3-48381ca2780f.gif"
+            alt="Dirgahayu Indonesia"
+          >
+        </div>
 
-            .dots{
-                position:absolute;
-                left:50%;
-                bottom:10px;
-                transform:translateX(-50%);
-                display:flex;
-                gap:5px;
-                justify-content:center;
-                align-items:center;
-                z-index:9998;
-            }
+        <div class="kdh-gif-box">
+          <img
+            src="https://www.image2url.com/r2/default/gifs/1776203611749-4994e8c2-bf51-4a8e-8d21-1a0732c86ff7.gif"
+            alt="Lucky Neko"
+          >
+        </div>
 
-            .dot{
-                width:6px;
-                height:6px;
-                border-radius:50%;
-                border:none;
-                background:rgba(255,255,255,.45);
-                cursor:pointer;
-                padding:0;
-            }
+      </div>
 
-            .dot.active{
-                background:#ffd700;
-            }
+      <div class="kdh-btn-row">
 
-            .slot-text{
-                font-weight:900;
-                font-size:16px;
-                color:#ffd700;
-                letter-spacing:2px;
-                text-shadow:0 0 10px rgba(255,215,0,.55);
-            }
+        <a
+          class="kdh-btn"
+          href="https://goviplink.live/livescore"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          LIVE SCORE
+        </a>
 
-            .gif-row{
-                display:flex;
-                gap:10px;
-                justify-content:center;
-                margin-top:4px;
-            }
+        <a
+          class="kdh-btn"
+          href="https://goviplink.live/rtp-kudahoki88"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          RTP
+        </a>
 
-            .gif-box{
-                position:relative;
-                width:90px;
-            }
+        <button
+          type="button"
+          class="kdh-ok"
+          id="kdh-ok"
+        >
+          OK
+        </button>
 
-            .gif-box img{
-                width:100%;
-                border-radius:12px;
-                pointer-events:none;
-            }
+      </div>
+    `;
 
-            .gif-box svg{
-                position:absolute;
-                inset:0;
-                width:100%;
-                height:100%;
-                pointer-events:none;
-            }
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
 
-            .btn-row{
-                display:flex;
-                gap:12px;
-            }
+    const sliderImage =
+      document.getElementById("kdh-popup-img");
 
-            .btn,.btn-ok{
-                position:relative;
-                overflow:hidden;
-                width:170px;
-                padding:12px 0;
-                border-radius:12px;
-                font-size:14px;
-                cursor:pointer;
-                text-decoration:none;
-                text-align:center;
-                font-weight:900;
-                color:#ffd86b;
-                background:linear-gradient(180deg,#3b2b0d 0%,#151515 35%,#050505 100%);
-                border:1px solid #d6a640;
-                box-shadow:
-                    0 0 0 1px rgba(255,215,120,.25),
-                    0 6px 18px rgba(0,0,0,.45),
-                    inset 0 1px 0 rgba(255,255,255,.18),
-                    inset 0 -2px 8px rgba(0,0,0,.4);
-                transition:all .25s ease;
-            }
+    const nextSliderImage =
+      document.getElementById("kdh-popup-img-next");
 
-            .btn::before,
-            .btn-ok::before{
-                content:'';
-                position:absolute;
-                top:0;
-                left:-40%;
-                width:25%;
-                height:100%;
-                background:linear-gradient(
-                    120deg,
-                    rgba(255,215,0,0) 0%,
-                    rgba(255,245,180,.95) 50%,
-                    rgba(255,215,0,0) 100%
-                );
-                transform:skewX(-25deg);
-                animation:shine 2s infinite;
-            }
+    const dotsContainer =
+      document.getElementById("kdh-dots");
 
-            @keyframes slide-in{
-                0%{transform:translateX(-40px);opacity:0}
-                100%{transform:translateX(0);opacity:1}
-            }
+    /* ==============================
+       DOT SLIDER
+    ============================== */
 
-            @keyframes slide-out{
-                0%{transform:translateX(0);opacity:1}
-                100%{transform:translateX(40px);opacity:0}
-            }
+    function renderDots() {
+      dotsContainer.innerHTML = "";
 
-            @keyframes fade-in{
-                from{opacity:0}
-                to{opacity:1}
-            }
+      IMG.forEach(function (_, imageIndex) {
+        const dot = document.createElement("button");
 
-            @keyframes fade-out{
-                from{opacity:1}
-                to{opacity:0}
-            }
+        dot.type = "button";
+        dot.className =
+          "kdh-dot" +
+          (imageIndex === currentIndex ? " active" : "");
 
-            @keyframes shine{
-                0%{left:-40%}
-                100%{left:125%}
-            }
-        `;
+        dot.setAttribute(
+          "aria-label",
+          "Tampilkan gambar " + (imageIndex + 1)
+        );
 
-        shadow.appendChild(style);
+        dot.addEventListener("click", function () {
+          changeSlide(imageIndex);
+          resetSliderTimer();
+        });
 
-        const wrap = document.createElement('div');
-        wrap.innerHTML = `
-            <div id="overlay"></div>
+        dotsContainer.appendChild(dot);
+      });
+    }
 
-            <div id="popup">
-                <div id="popup-box">
-                    <div id="close-x">✕</div>
+    /* ==============================
+       SLIDE KANAN KE KIRI
+    ============================== */
 
-                    <button class="nav-btn" id="prev-btn">‹</button>
-                    <img id="popup-img" src="${POPUP_IMAGES[0]}">
-                    <button class="nav-btn" id="next-btn">›</button>
+    function changeSlide(newIndex) {
+      if (
+        changingSlide ||
+        newIndex < 0 ||
+        newIndex >= IMG.length ||
+        newIndex === currentIndex
+      ) {
+        return;
+      }
 
-                    <div class="dots" id="dots"></div>
-                </div>
+      changingSlide = true;
 
-                <div class="slot-text">WORLD CUP 2026</div>
+      nextSliderImage.classList.remove("slide-rtl");
+      sliderImage.classList.remove("slide-old-left");
 
-                <div class="gif-row">
-                    <div class="gif-box">
-                        <img src="https://www.image2url.com/r2/default/gifs/1776202907511-66e0b111-777d-4ebe-913e-e96b5c3cbe5f.gif">
-                        <svg viewBox="0 0 100 100">
-                            <rect x="2" y="2" width="96" height="96" rx="12" fill="none" stroke="#ffd700" stroke-width="2" stroke-dasharray="20 300">
-                                <animate attributeName="stroke-dashoffset" from="0" to="-320" dur="2s" repeatCount="indefinite"/>
-                            </rect>
-                        </svg>
-                    </div>
+      nextSliderImage.src = IMG[newIndex];
+      nextSliderImage.alt =
+        "Dirgahayu Indonesia Slide " + (newIndex + 1);
 
-                    <div class="gif-box">
-                        <img src="https://media.tenor.com/Hm5Hk1U_uVoAAAAd/fifa-world-cup-2026-fifa.gif">
-                        <svg viewBox="0 0 100 100">
-                            <rect x="2" y="2" width="96" height="96" rx="12" fill="none" stroke="#ffd700" stroke-width="2" stroke-dasharray="20 300">
-                                <animate attributeName="stroke-dashoffset" from="0" to="-320" dur="2s" repeatCount="indefinite"/>
-                            </rect>
-                        </svg>
-                    </div>
+      nextSliderImage.style.transition = "none";
+      nextSliderImage.style.opacity = "0";
+      nextSliderImage.style.transform =
+        "translateX(100%)";
 
-                    <div class="gif-box">
-                        <img src="https://www.image2url.com/r2/default/gifs/1776203611749-4994e8c2-bf51-4a8e-8d21-1a0732c86ff7.gif">
-                        <svg viewBox="0 0 100 100">
-                            <rect x="2" y="2" width="96" height="96" rx="12" fill="none" stroke="#ffd700" stroke-width="2" stroke-dasharray="20 300">
-                                <animate attributeName="stroke-dashoffset" from="0" to="-320" dur="2s" repeatCount="indefinite"/>
-                            </rect>
-                        </svg>
-                    </div>
-                </div>
+      void nextSliderImage.offsetWidth;
 
-                <div class="btn-row">
-                    <a class="btn" href="https://goviplink.live/livescore" target="_blank">⚽ LIVE SCORE</a>
-                    <a class="btn" href="https://goviplink.live/rtp-kudahoki88" target="_blank">RTP LIVE 🎰</a>
-                </div>
+      nextSliderImage.style.transition = "";
+      nextSliderImage.style.opacity = "";
+      nextSliderImage.style.transform = "";
 
-                <button class="btn-ok" id="btn-ok">OK</button>
-            </div>
-        `;
+      sliderImage.classList.add("slide-old-left");
+      nextSliderImage.classList.add("slide-rtl");
 
-        shadow.appendChild(wrap);
+      let finished = false;
 
-        const popupBox = shadow.querySelector('#popup-box');
-        const overlay = shadow.querySelector('#overlay');
-        const popupImg = shadow.querySelector('#popup-img');
-        const dotsBox = shadow.querySelector('#dots');
+      function finishSlide() {
+        if (finished) return;
+        finished = true;
 
-        function renderDots() {
-            dotsBox.innerHTML = '';
+        nextSliderImage.removeEventListener(
+          "transitionend",
+          handleTransitionEnd
+        );
 
-            POPUP_IMAGES.forEach(function (_, index) {
-                const dot = document.createElement('button');
-                dot.className = 'dot' + (index === currentIndex ? ' active' : '');
+        currentIndex = newIndex;
 
-                dot.addEventListener('click', function () {
-                    goToSlide(index);
-                    resetSlideTimer();
-                });
+        sliderImage.src = IMG[currentIndex];
+        sliderImage.alt =
+          "Dirgahayu Indonesia Slide " +
+          (currentIndex + 1);
 
-                dotsBox.appendChild(dot);
+        sliderImage.classList.remove("slide-old-left");
+        sliderImage.style.transition = "none";
+        sliderImage.style.opacity = "1";
+        sliderImage.style.transform = "translateX(0)";
+
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            nextSliderImage.style.transition = "none";
+            nextSliderImage.classList.remove("slide-rtl");
+            nextSliderImage.style.opacity = "0";
+            nextSliderImage.style.transform =
+              "translateX(100%)";
+            nextSliderImage.src = "";
+            nextSliderImage.alt = "";
+
+            requestAnimationFrame(function () {
+              sliderImage.style.transition = "";
+              sliderImage.style.opacity = "";
+              sliderImage.style.transform = "";
+
+              nextSliderImage.style.transition = "";
+              nextSliderImage.style.opacity = "";
+              nextSliderImage.style.transform = "";
+
+              changingSlide = false;
             });
-        }
-
-        function goToSlide(index) {
-            popupImg.classList.add('fade');
-
-            setTimeout(function () {
-                currentIndex = index;
-                popupImg.src = POPUP_IMAGES[currentIndex];
-                popupImg.classList.remove('fade');
-                renderDots();
-            }, 300);
-        }
-
-        function nextSlide() {
-            goToSlide((currentIndex + 1) % POPUP_IMAGES.length);
-        }
-
-        function prevSlide() {
-            goToSlide((currentIndex - 1 + POPUP_IMAGES.length) % POPUP_IMAGES.length);
-        }
-
-        function startSlide() {
-            slideTimer = setInterval(nextSlide, SLIDE_INTERVAL);
-        }
-
-        function resetSlideTimer() {
-            if (slideTimer) clearInterval(slideTimer);
-            startSlide();
-        }
-
-        function closePopup() {
-            if (slideTimer) clearInterval(slideTimer);
-
-            popupBox.classList.add('slide-out');
-            overlay.classList.add('fade-out');
-            localStorage.setItem(DELAY_KEY, Date.now());
-
-            setTimeout(function () {
-                host.remove();
-            }, 600);
-        }
-
-        shadow.querySelector('#next-btn').addEventListener('click', function () {
-            nextSlide();
-            resetSlideTimer();
+          });
         });
-
-        shadow.querySelector('#prev-btn').addEventListener('click', function () {
-            prevSlide();
-            resetSlideTimer();
-        });
-
-        shadow.querySelector('#btn-ok').addEventListener('click', closePopup);
-        shadow.querySelector('#close-x').addEventListener('click', closePopup);
 
         renderDots();
-        startSlide();
+      }
 
-        console.log('[✅] Popup slider aktif');
+      function handleTransitionEnd(event) {
+        if (
+          event.target === nextSliderImage &&
+          event.propertyName === "transform"
+        ) {
+          finishSlide();
+        }
+      }
+
+      nextSliderImage.addEventListener(
+        "transitionend",
+        handleTransitionEnd
+      );
+
+      window.setTimeout(finishSlide, 900);
     }
 
-    function startRetry() {
-        let count = 0;
-        const maxTry = 40;
+    function nextSlide() {
+      const nextIndex =
+        (currentIndex + 1) % IMG.length;
 
-        const timer = setInterval(function () {
-            createPopup();
-            count++;
-
-            if (popupCreated || count >= maxTry) {
-                clearInterval(timer);
-            }
-        }, 250);
+      changeSlide(nextIndex);
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startRetry);
-    } else {
-        startRetry();
+    function previousSlide() {
+      const previousIndex =
+        (currentIndex - 1 + IMG.length) % IMG.length;
+
+      changeSlide(previousIndex);
     }
 
-    const observer = new MutationObserver(function () {
-        createPopup();
-    });
+    function startSliderTimer() {
+      clearInterval(sliderTimer);
 
-    observer.observe(document.documentElement, {
-        childList:true,
-        subtree:true
-    });
+      sliderTimer = setInterval(function () {
+        nextSlide();
+      }, SLIDER_INTERVAL);
+    }
+
+    function resetSliderTimer() {
+      startSliderTimer();
+    }
+
+    /* ==============================
+       TUTUP POPUP
+    ============================== */
+
+    function closePopup() {
+      clearInterval(sliderTimer);
+
+      popup.classList.add("pull-up");
+      overlay.classList.add("fade-out");
+
+      localStorage.setItem(
+        DELAY_KEY,
+        String(Date.now())
+      );
+
+      setTimeout(function () {
+        popup.remove();
+        overlay.remove();
+        popupCreated = false;
+      }, 760);
+    }
+
+    /* ==============================
+       EVENT
+    ============================== */
+
+    document
+      .getElementById("kdh-next")
+      .addEventListener("click", function () {
+        nextSlide();
+        resetSliderTimer();
+      });
+
+    document
+      .getElementById("kdh-prev")
+      .addEventListener("click", function () {
+        previousSlide();
+        resetSliderTimer();
+      });
+
+    document
+      .getElementById("kdh-close")
+      .addEventListener("click", closePopup);
+
+    document
+      .getElementById("kdh-ok")
+      .addEventListener("click", closePopup);
+
+    renderDots();
+    startSliderTimer();
+  }
+
+  /* ==============================
+     INIT
+  ============================== */
+
+  function init() {
+    let retry = 0;
+
+    const checkBody = setInterval(function () {
+      createPopup();
+      retry++;
+
+      if (popupCreated || retry >= 40) {
+        clearInterval(checkBody);
+      }
+    }, 500);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      { once: true }
+    );
+  } else {
+    init();
+  }
 })();
