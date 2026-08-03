@@ -9,7 +9,7 @@
 
   const DELAY_KEY = "popup_delay_1h";
   const SLIDER_INTERVAL = 7000;
-  const STYLE_ID = "kdh-popup-style";
+  const STYLE_ID = "kdh-popup-style-v3-bottom-center";
   const POPUP_ID = "kdh-popup";
   const OVERLAY_ID = "kdh-popup-overlay";
 
@@ -108,24 +108,24 @@
         to { opacity: 0; }
       }
 
-      @keyframes kdhSlideIn {
+      @keyframes kdhPopupEnterFromBottomV3 {
         from {
-          transform: translateY(25px);
+          transform: translate3d(0, 115vh, 0);
           opacity: 0;
         }
         to {
-          transform: translateY(0);
+          transform: translate3d(0, 0, 0);
           opacity: 1;
         }
       }
 
-      @keyframes kdhPopupPullUp {
+      @keyframes kdhPopupExitToBottomV3 {
         from {
-          transform: translateY(0);
+          transform: translate3d(0, 0, 0);
           opacity: 1;
         }
         to {
-          transform: translateY(-110vh);
+          transform: translate3d(0, 115vh, 0);
           opacity: 0;
         }
       }
@@ -167,11 +167,18 @@
         box-sizing: border-box;
         background: transparent;
         overflow-y: auto;
+        transform: translate3d(0, 115vh, 0);
+        opacity: 0;
+        animation:
+          kdhPopupEnterFromBottomV3 .82s
+          cubic-bezier(.22, .86, .32, 1)
+          forwards;
+        will-change: transform, opacity;
       }
 
-      #${POPUP_ID}.pull-up {
+      #${POPUP_ID}.exit-down-v3 {
         animation:
-          kdhPopupPullUp .72s
+          kdhPopupExitToBottomV3 .72s
           cubic-bezier(.55, .05, .25, 1)
           forwards;
         pointer-events: none;
@@ -179,7 +186,7 @@
 
       #kdh-popup-box {
         position: relative;
-        animation: kdhSlideIn .45s ease forwards;
+        animation: none;
         filter: none !important;
         box-shadow: none !important;
         background: transparent !important;
@@ -809,7 +816,15 @@
     function closePopup() {
       clearInterval(sliderTimer);
 
-      popup.classList.add("pull-up");
+      // Paksa animasi keluar selalu bergerak KE BAWAH.
+      popup.classList.remove(
+        "pull-up",
+        "pull-down",
+        "exit-down-v2",
+        "exit-down-v3"
+      );
+      void popup.offsetWidth;
+      popup.classList.add("exit-down-v3");
       overlay.classList.add("fade-out");
 
       localStorage.setItem(
